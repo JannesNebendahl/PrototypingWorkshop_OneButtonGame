@@ -32,9 +32,9 @@ class StartScreen extends StatelessWidget {
 
     Widget userNotification() => Positioned(
       top: MediaQuery.of(context).size.height / 2 - 100,
-      left: MediaQuery.of(context).size.width / 10,
+      left: MediaQuery.of(context).size.width / 20,
       child: SizedBox(
-        width: MediaQuery.of(context).size.width * 0.75,
+        width: MediaQuery.of(context).size.width * 0.9,
         height: 200,
         child: const Card(
           color: Colors.white,

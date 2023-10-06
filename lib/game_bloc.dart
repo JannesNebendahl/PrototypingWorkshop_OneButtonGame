@@ -35,8 +35,11 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     roundIndex = 0;
     scoreMs = 0;
     videoData =  [
-      const VideoData('assets/gepardenJagd.mp4', 17950, 'As soon as the cheetah touches the antelope, \ntake a photo!'),
-      const VideoData('assets/gewitter.mp4', 12110, 'Take a photo of the lightning!'),
+      const VideoData('assets/gewitter.mp4', 6550, 'Take a photo of the lightning!'),
+      const VideoData('assets/Torschuss.mp4', 4260, 'Take a photo, when to goalkeeper touches the ball!'),
+      const VideoData('assets/gepardenJagd.mp4', 10530, 'As soon as the cheetah touches the antelope, \ntake a photo!'),
+      const VideoData('assets/Nescar.mp4', 6160, 'Take a photo, when the winner crosses the finish line!'),
+      const VideoData('assets/Skispringen.mp4', 8000, 'Take a photo, when the skier touches the ground!')
     ];
     emit(RoundState(scoreMs, videoData[roundIndex]));
   }
