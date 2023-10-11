@@ -1,45 +1,70 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:one_button_app/game_bloc.dart';
-import 'package:video_player/video_player.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'game_bloc.dart';
 
-class VideoPlayerScreen extends StatefulWidget {
-  const VideoPlayerScreen({Key? key, required this.data, required this.score})
+class ModelScreen extends StatefulWidget {
+  const ModelScreen({Key? key, required this.data, required this.score})
       : super(key: key);
 
-  final VideoData data;
+  final ModelData data;
   final int score;
 
   @override
-  _VideoPlayerScreenState createState() => _VideoPlayerScreenState();
+  State<ModelScreen> createState() => _ModelScreenState();
 }
 
-class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
-  late VideoPlayerController _videoController;
-  int capturedMomentMs = 0;
+class _ModelScreenState extends State<ModelScreen> {
+  bool imageShown = false;
   bool capturedPhoto = false;
-  bool videoIsRunning = false;
+  int imageIndex = 1;
+  Random random = Random();
+  late Timer _timer;
+  final Stopwatch _stopwatch = Stopwatch();
+  bool enablePhotoCapturing = false;
+  int fines = 0;
+  static const int fine = 1000;
+  late String imagePath;
 
   @override
   void initState() {
+    imagePath = '${widget.data.imageDirectory}$imageIndex.jpg';
     super.initState();
-    _videoController = VideoPlayerController.asset(widget.data.videoPath)
-      ..initialize().then((_) {
-        setState(() {});
-      });
   }
 
-  Widget video() => Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      _videoController.value.isInitialized
-          ? AspectRatio(
-              aspectRatio: _videoController.value.aspectRatio,
-              child: VideoPlayer(_videoController),
-            )
-          : const CircularProgressIndicator(),
-    ],
-  );
+  void startTimer() {
+    final randomDuration = widget.data.minimumToNextImage +
+        Duration(
+            seconds: random.nextInt(widget.data.maximumToNextImage.inSeconds -
+                widget.data.minimumToNextImage.inSeconds +
+                1));
+
+    _timer = Timer.periodic(randomDuration, (timer) {
+      _timer.cancel();
+      setState(() {
+        imageIndex++;
+        imagePath = '${widget.data.imageDirectory}$imageIndex.jpg';
+      });
+      if (imageIndex == widget.data.numberOfImages) {
+        _stopwatch.start();
+        setState(() {
+          enablePhotoCapturing = true;
+        });
+      } else {
+        startTimer();
+      }
+    });
+  }
+
+  Widget image() => Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(imagePath),
+        ],
+      );
 
   Widget captureButton() => Positioned(
         top: MediaQuery.of(context).size.height / 2 - 35,
@@ -53,28 +78,32 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           ),
           child: IconButton(
             onPressed: () async {
-              if (videoIsRunning) {
-                final stopMoment = await _videoController.position;
-                capturedMomentMs =
-                    stopMoment != null ? stopMoment.inMilliseconds : 0;
-                await _videoController.pause();
-                setState(() {
-                  videoIsRunning = false;
-                  capturedPhoto = true;
-                });
+              if (imageShown) {
+                if (enablePhotoCapturing) {
+                  _stopwatch.stop();
+                  setState(() {
+                    imageShown = false;
+                    capturedPhoto = true;
+                  });
+                } else {
+                  fines += fine;
+                  setState(() {
+                    showToastMessage();
+                  });
+                }
               } else {
                 if (capturedPhoto) {
-                  context.read<GameBloc>().add(
-                      NextRound((capturedMomentMs - widget.data.momentInMs).abs()));
+                  context.read<GameBloc>().add(NextRound(
+                      (_stopwatch.elapsedMilliseconds).abs() + fines));
                 } else {
-                  await _videoController.play();
+                  startTimer();
                   setState(() {
-                    videoIsRunning = true;
+                    imageShown = true;
                   });
                 }
               }
             },
-            icon: videoIsRunning
+            icon: imageShown
                 ? const Icon(
                     Icons.camera,
                     color: Colors.white,
@@ -89,22 +118,22 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         ),
       );
 
-  Widget userNotification() => videoIsRunning
+  Widget userNotification() => imageShown
       ? Container()
       : capturedPhoto
           ? Positioned(
-              top: MediaQuery.of(context).size.height / 2 - 25,
+              top: MediaQuery.of(context).size.height / 2 - 50,
               right: MediaQuery.of(context).size.width / 2 - 180,
               child: SizedBox(
                 width: 300,
-                height: 50,
+                height: 100,
                 child: Card(
                   color: Colors.white,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Missed it by ${capturedMomentMs - widget.data.momentInMs} ms',
+                        'Missed it by ${_stopwatch.elapsedMilliseconds} ms\n + $fines ms of fines',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
@@ -117,18 +146,18 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
               ),
             )
           : Positioned(
-              top: MediaQuery.of(context).size.height / 2 - 50,
+              top: MediaQuery.of(context).size.height / 2 - 75,
               right: MediaQuery.of(context).size.width / 2 - 280,
               child: SizedBox(
                 width: 500,
-                height: 100,
+                height: 150,
                 child: Card(
                   color: Colors.white,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        widget.data.instructions,
+                        '${widget.data.instructions}\nYou get a fine of $fine ms for each mistaken photo.',
                         style: const TextStyle(
                           color: Colors.black,
                           fontSize: 20,
@@ -149,9 +178,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           child: Card(
             color: Colors.white60,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(width: 20),
                 Text(
                   'Score: ${widget.score}',
                   style: const TextStyle(
@@ -194,6 +222,17 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         ),
       );
 
+  void showToastMessage() {
+    Fluttertoast.showToast(
+      msg: 'Fine of $fine ms',
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.white,
+      textColor: Colors.black,
+      fontSize: 20.0,
+    );
+  }
+
   Widget debugInfo() => Positioned(
         bottom: MediaQuery.of(context).size.height / 10 - 25,
         left: MediaQuery.of(context).size.width / 20,
@@ -210,7 +249,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
                     context.read<GameBloc>().add(RestartGame());
                   },
                   child: Text(
-                    '$capturedMomentMs',
+                    '${_stopwatch.elapsedMilliseconds}',
                     style: const TextStyle(
                       color: Colors.black,
                       fontSize: 20,
@@ -225,15 +264,13 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    _videoController.setVolume(0);
-
     return Scaffold(
       body: SizedBox(
         width: MediaQuery.of(context).size.width,
         height: MediaQuery.of(context).size.height,
         child: Stack(
           children: <Widget>[
-            Center(child: video()),
+            Center(child: image()),
             restartButton(),
             scoreCard(),
             userNotification(),
@@ -243,11 +280,5 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _videoController.dispose();
-    super.dispose();
   }
 }

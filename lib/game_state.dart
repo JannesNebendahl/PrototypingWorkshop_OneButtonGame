@@ -46,6 +46,26 @@ class VideoData extends GameData {
 }
 
 class ModelData extends GameData {
+  final String imageDirectory;
+  final String instructions;
+  final int numberOfImages;
+  final Duration minimumToNextImage;
+  final Duration maximumToNextImage;
+
+  const ModelData(
+    this.imageDirectory,
+    this.instructions,
+    this.numberOfImages,
+    this.minimumToNextImage,
+    this.maximumToNextImage,
+  );
+
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [
+        imageDirectory,
+        instructions,
+        numberOfImages,
+        minimumToNextImage,
+        maximumToNextImage,
+      ];
 }

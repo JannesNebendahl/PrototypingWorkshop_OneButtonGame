@@ -1,7 +1,10 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:one_button_app/game_bloc.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:one_button_app/modelScreen.dart';
 import 'package:one_button_app/resultScreen.dart';
 import 'package:one_button_app/startScreen.dart';
 import 'package:one_button_app/videoPlayerScreen.dart';
@@ -29,7 +32,9 @@ class MyApp extends StatelessWidget {
                 Key key = Key(data.videoPath);
                 return VideoPlayerScreen(key: key, data: data, score: state.score);
               } else if (state.data is ModelData) {
-                return const Placeholder();
+                ModelData data = state.data as ModelData;
+                Key key = Key(data.imageDirectory);
+                return ModelScreen(key: key, data: data, score: state.score);
               }  else {
                 throw UnimplementedError();
               }
